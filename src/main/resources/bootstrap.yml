@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: service-gateway
+  profiles:
+      active: dev
+  cloud:
+    config:
+      uri: ${GIT_URL:http://localhost:9000/}
+      failFast: false
+      # discovery:
+      #   enabled: true
+      #   serviceId: service-config
+      inetutils:
+        ignoredInterfaces:
+          - docker0
+          - veth.*
+          - eth(1|2).*
+      stream:
+        bindings:
+          springCloudBusOutput:
+            destination: springCloudBusInput
+            contentType: application/json
+    gateway:
+      routes:
+      - id: customer
+        uri: lb://service-customer
+        predicates:
+        - Path=/customer/**
+        filters:
+        - StripPrefix=1
+      - id: product
+        uri: lb://service-product
+        predicates:
+        - Path=/product/**
+        filters:
+        - StripPrefix=1
+      - id: supplier
+        uri: lb://service-supplier
+        predicates:
+        - Path=/supplier/**
+        filters:
+        - StripPrefix=1
+
+---
+spring:
+  profiles: dev
+  sleuth:
+    enabled: false
+server:
+  port: 9009
+
+eureka:
+  client:
+    # registry-fetch-interval-seconds: 4
+    serviceUrl:
+      defaultZone: http://localhost:9001/eureka/
+
+---
+
+spring:
+  profiles: docker
+
+server:
+  port : ${SERVICE_PORT:9009}
+
+eureka:
+  instance:
+    prefer-ip-address: true 
+  client:
+    service-url:
+      defaultZone: ${REGISTRY_URL}
